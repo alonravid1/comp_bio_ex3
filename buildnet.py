@@ -64,36 +64,42 @@ class NeuralNetwork:
     def sigmoid(self, x):
         return 1 / (1 + np.exp(-x))
 
+    def __lt__(self, other):
+        return self
+
 
 # Genetic Algorithm
 def genetic_algorithm():
-    net_population_scores = []
-    score = 0
-    for _ in range(POPULATION_SIZE):
-        network = NeuralNetwork()
-        net_population_scores.append((network, score))
+    population = np.array([(0, NeuralNetwork()) for i in range(POPULATION_SIZE)], dtype=[('score', float), ('net', NeuralNetwork)])
 
     for generation in range(MAX_GENERATIONS):
         print(f"Generation: {generation + 1}")
-        sorted_population_scores = evaluate_and_sort(net_population_scores)
+        sorted_population_scores = evaluate_and_sort(population)
+        print("outside:")
+        print(sorted_population_scores['score'])
+        
         elite_population = select(sorted_population_scores)
         crossover_population = crossover(sorted_population_scores)
-        net_population_scores = elite_population + crossover_population
-        mutate(net_population_scores)
-
-    best_network[0] = net_population_scores[0]
+        population = np.concatenate((elite_population, crossover_population))
+        mutate(population)
+        
+    best_network = population[0]['net']
     return best_network
 
 
-def evaluate_and_sort(population_scores_tuple):
-    accuracies = []
-    for network in population_scores_tuple:
-        predictions = network[0].forward(X_train)
+def evaluate_and_sort(population):
+    for i in range(POPULATION_SIZE):
+        predictions = population[i]['net'].forward(X_train)
         count = sum(predictions[i] == int(y_train[i]) for i in range(len(predictions)))
         accuracy = count / len(predictions)
-        accuracies.append(accuracy)
-    sorted_population_scores = sorted(zip(population_scores_tuple, accuracies), key=lambda x: x[1], reverse=True)
-    return sorted_population_scores
+        population[i]['score'] = accuracy
+    population = np.sort(population, order='score')
+    print("before:")
+    print(population['score'])
+    population = population[::-1]
+    print("after:")
+    print(population['score'])
+    return population
 
 
 def select(sorted_population):
@@ -101,34 +107,34 @@ def select(sorted_population):
     return sorted_population[:elite_count]
 
 
-def crossover(sorted_population_score_tuple):
-    offspring = []
-    tournament_winners = []
-    weights = [pair[1] for pair in sorted_population_score_tuple]
-    total_weight = sum(weights)
-    probability_dist = [w / total_weight for w in weights]
+def crossover(sorted_population):
+    
+    cross_size = int(POPULATION_SIZE * CROSSOVER_RATE)
+    offsprings = np.array([(0, None) for i in range(cross_size)], dtype=[('score', float), ('net', NeuralNetwork)])
+    tournament_winners = np.array([(0, None) for i in range(cross_size)], dtype=[('score', float), ('net', NeuralNetwork)])
 
-    for i in range(int(CROSSOVER_RATE * POPULATION_SIZE)):
-        tournament_scores = random.choices(sorted_population_score_tuple, weights=probability_dist, k=TOURNAMENT_SIZE)
-        tournament_scores.sort(key=lambda x: x[1], reverse=True)
-        tournament_winners.append(tournament_scores[0])
+    total_score = sorted_population['score'].sum()
+    sorted_population['score'] = sorted_population['score'] / total_score
+    for i in range(cross_size):
+        tournament_scores = random.choices(sorted_population, weights=sorted_population['score'], k=TOURNAMENT_SIZE)
+        tournament_scores = np.sort(tournament_scores, order='score')
+        tournament_winners[i] = tournament_scores[-1]
 
-    for i in range(int(CROSSOVER_RATE * POPULATION_SIZE)):
-        parent1 = random.choice(tournament_winners)[0]  # Extract the network object from the tuple
-        print(parent1)
-        parent2 = random.choice(tournament_winners)[0]  # Extract the network object from the tuple
-        print(parent2)
+    for i in range(cross_size):
+        parent1 = random.choice(tournament_winners)  # Extract the network object from the tuple
+        parent2 = random.choice(tournament_winners)  # Extract the network object from the tuple
 
         child = NeuralNetwork()
-        child.weights1 = np.copy(parent1.weights1)
-        child.weights2 = np.copy(parent2.weights2)
-        offspring.append(child)
+        child.weights1 = np.copy(parent1['net'].weights1)
+        child.weights2 = np.copy(parent2['net'].weights2)
+        offsprings[i]['score'] = 0
+        offsprings[i]['net'] = child
 
-    return offspring
+    return offsprings
 
 
 def mutate(networks):
-    for network in networks:
+    for network in networks['net']:
         if np.random.random() < MUTATION_RATE:
             network.weights1 += np.random.randn(INPUT_SIZE, HIDDEN_SIZE) * 0.1
             network.weights2 += np.random.randn(HIDDEN_SIZE, OUTPUT_SIZE) * 0.1
