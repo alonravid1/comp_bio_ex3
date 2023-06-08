@@ -4,6 +4,9 @@ import numpy as np
 POPULATION_SIZE = 100
 MAX_GENERATIONS = 100
 MUTATION_RATE = 0.01
+REPLICATION_RATE = 0.2
+CROSSOVER_RATE = 1 - REPLICATION_RATE
+TOURNAMENT_SIZE = 20
 
 # Neural Network Parameters
 INPUT_SIZE = 16
@@ -58,6 +61,7 @@ class NeuralNetwork:
                 predictions.append(1)
             else:
                 predictions.append(0)
+                
         return predictions
 
     def sigmoid(self, x):
@@ -73,47 +77,54 @@ def genetic_algorithm():
 
     for generation in range(MAX_GENERATIONS):
         print(f"Generation: {generation + 1}")
-        scores = evaluate(net_population)
-        print(scores)
-        net_population = select(net_population, scores)
-        net_population = crossover(net_population)
+        sorted_population = evaluate_and_sort(net_population)
+        elite_population = select(sorted_population)
+        crossover_population = crossover(sorted_population)
+        net_population = elite_population + crossover_population
         mutate(net_population)
 
     best_network = net_population[0]
     return best_network
 
 
-def evaluate(population):
-    scores = []
-    for network in population:
-        predictions = network.forward(X_train)
+def evaluate_and_sort(population):
+    sorted_population = np.array([(0, None) for i in range(POPULATION_SIZE)], dtype=[('score', float), ('net', NeuralNetwork)])
+    for index in range(POPULATION_SIZE):
+        predictions = population[index].forward(X_train)
         count = 0
         for i in range(len(predictions)):
-            if predictions[i] == y_train[i]:
+            if predictions[i] == int(y_train[i]):
                 count += 1
 
         accuracy = count / len(predictions)
-        scores.append(accuracy)
-    return scores
+        sorted_population['score'] = accuracy
+        sorted_population['net'] = population[index]        
+    
+    sorted_population.sort(order='score', reversed=True)
+    return sorted_population
 
 
-def select(population, scores):
-    sorted_population = [x for x, _ in sorted(zip(population, scores), key=lambda pair: pair[1], reverse=True)]
-    elite_count = int(0.2 * POPULATION_SIZE)
-    return sorted_population[:elite_count]
+def select(sorted_population):
+    elite_count = int(REPLICATION_RATE * POPULATION_SIZE)
+    return sorted_population[:elite_count]['net']
 
 
-def crossover(population):
+def crossover(sorted_population):
     offspring = []
-    elite_count = len(population)
-    offspring.extend(population[:elite_count])
+    sorted_population['score'] = sorted_population['score'] / np.sum(sorted_population['score'])
+    tournament_winners = []
+    for i in range(int(CROSSOVER_RATE * POPULATION_SIZE)):
+        tournament_scores = np.random.choice(sorted_population, weights=sorted_population['score'], k=TOURNAMENT_SIZE)
+        tournament_scores.sort(order='score', reversed=True)
+        tournament_winners.append(tournament_scores[0])
+    
+    for i in range(int(CROSSOVER_RATE * POPULATION_SIZE)):
+        parent1 = np.random.sample(tournament_winners)
+        parent2 = np.random.sample(tournament_winners)
 
-    while len(offspring) < POPULATION_SIZE:
-        parent1 = np.random.choice(population)
-        parent2 = np.random.choice(population)
         child = NeuralNetwork()
-        child.weights1 = np.copy(parent1.weights1)
-        child.weights2 = np.copy(parent2.weights2)
+        child.weights1 = np.copy(parent1['net'].weights1)
+        child.weights2 = np.copy(parent2['net'].weights2)
         offspring.append(child)
 
     return offspring
