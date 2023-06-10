@@ -70,19 +70,20 @@ class NeuralNetwork:
 
 # Genetic Algorithm
 def genetic_algorithm():
-    population = np.array([(0, NeuralNetwork()) for i in range(POPULATION_SIZE)], dtype=[('score', float), ('net', NeuralNetwork)])
+    population = np.array([(0, NeuralNetwork()) for i in range(POPULATION_SIZE)],
+                          dtype=[('score', float), ('net', NeuralNetwork)])
 
     for generation in range(MAX_GENERATIONS):
         print(f"Generation: {generation + 1}")
         sorted_population_scores = evaluate_and_sort(population)
         print("outside:")
         print(sorted_population_scores['score'])
-        
+
         elite_population = select(sorted_population_scores)
         crossover_population = crossover(sorted_population_scores)
         population = np.concatenate((elite_population, crossover_population))
         mutate(population)
-        
+
     best_network = population[0]['net']
     return best_network
 
@@ -108,10 +109,10 @@ def select(sorted_population):
 
 
 def crossover(sorted_population):
-    
     cross_size = int(POPULATION_SIZE * CROSSOVER_RATE)
     offsprings = np.array([(0, None) for i in range(cross_size)], dtype=[('score', float), ('net', NeuralNetwork)])
-    tournament_winners = np.array([(0, None) for i in range(cross_size)], dtype=[('score', float), ('net', NeuralNetwork)])
+    tournament_winners = np.array([(0, None) for i in range(cross_size)],
+                                  dtype=[('score', float), ('net', NeuralNetwork)])
 
     total_score = sorted_population['score'].sum()
     sorted_population['score'] = sorted_population['score'] / total_score
@@ -143,23 +144,21 @@ def mutate(networks):
 # Run the genetic algorithm to train the network
 best_network = genetic_algorithm()
 
-# Save the best network to a file
-np.savetxt("wnet.txt", np.concatenate((best_network.weights1.flatten(), best_network.weights2.flatten())))
 
 # Load the test data
 test_data = np.loadtxt("nn1.txt")
 test_inputs = test_data[:, :-1]
 
-# Normalize the inputs
-test_inputs = test_inputs / np.max(test_inputs, axis=0)
-
 # Load the trained network weights
+best_network = NeuralNetwork()
 weights = np.loadtxt("wnet.txt")
 best_network.weights1 = weights[:INPUT_SIZE * HIDDEN_SIZE].reshape(INPUT_SIZE, HIDDEN_SIZE)
 best_network.weights2 = weights[INPUT_SIZE * HIDDEN_SIZE:].reshape(HIDDEN_SIZE, OUTPUT_SIZE)
 
 # Run the network on the test data
-predictions = best_network.forward(test_inputs)
+predictions = best_network.forward(X_test)
 
-# Save the predictions to a file
-np.savetxt("predictions.txt", predictions)
+# zip the X_test and the predictions together and write them to a file
+with open('predictions.txt', 'w') as f:
+    for i in range(len(predictions)):
+        f.write(f"prediction: {predictions[i]}\tsample: {X_test[i]}\tlabel: {y_test[i]}\n")
