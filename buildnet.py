@@ -16,13 +16,16 @@ HIDDEN_SIZE = 32
 OUTPUT_SIZE = 1
 LEARNING_RATE = 0.1
 
+# TODO:
+# 1 Build the network with the given parameters
+
 # Load the training data
 data = open("nn0.txt", "r").readlines()
-print(data[0])
-# Split the data into training and test sets
-split_size = int(0.8 * len(data))
+# shuffle the data
+random.shuffle(data)
+# Split the data into training and test sets - 70% training and 30% testing
+split_size = int(0.7 * len(data))
 
-# i want to split the data into 80% training and 20% testing
 # and split it by "\t" the data is before the '\t' and the label is after the '\t'
 
 x_data = []
@@ -50,9 +53,9 @@ class NeuralNetwork:
         predictions = []
         for x in inputs:
             self.hidden = np.dot(x, self.weights1)
-            self.hidden_activation = self.sigmoid(self.hidden)
+            self.hidden_activation = self.relu(self.hidden)
             self.output = np.dot(self.hidden_activation, self.weights2)
-            self.output_activation = self.sigmoid(self.output)
+            self.output_activation = self.relu(self.output)
             answer = self.output_activation.flatten()
             if answer >= 0.5:
                 predictions.append(1)
@@ -61,8 +64,12 @@ class NeuralNetwork:
 
         return predictions
 
+    # activation functions
     def sigmoid(self, x):
         return 1 / (1 + np.exp(-x))
+
+    def relu(self, x):
+        return np.maximum(0, x)
 
     def __lt__(self, other):
         return self
@@ -76,8 +83,10 @@ def genetic_algorithm():
     for generation in range(MAX_GENERATIONS):
         print(f"Generation: {generation + 1}")
         sorted_population_scores = evaluate_and_sort(population)
-        print("outside:")
-        print(sorted_population_scores['score'])
+        # print the best network in the generation
+        print(f"Best network: {sorted_population_scores[0]['net']}")
+        # print the best score in the generation
+        print(f"Best score: {sorted_population_scores[0]['score']}")
 
         elite_population = select(sorted_population_scores)
         crossover_population = crossover(sorted_population_scores)
@@ -144,6 +153,8 @@ def mutate(networks):
 # Run the genetic algorithm to train the network
 best_network = genetic_algorithm()
 
+# Save the best network to a file
+np.savetxt("wnet.txt", np.concatenate((best_network.weights1.flatten(), best_network.weights2.flatten())))
 
 # Load the test data
 test_data = np.loadtxt("nn1.txt")
