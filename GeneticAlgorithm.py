@@ -90,9 +90,9 @@ class GeneticAlgorithm:
         return offsprings
 
     def mutate(self, networks):
-        for network in networks['net']:
-            for i in range(len(network.weights)):
+        for net_index in range(1, self.population_size):
+            for i in range(len(networks[net_index]['net'].weights)):
                     if self.rng.random() < self.mutation_rate:
-                        network.weights[i] += (self.rng.standard_normal(size=network.weights[i].shape) *
+                        networks[net_index]['net'].weights[i] += (self.rng.standard_normal(size=networks[net_index]['net'].weights[i].shape) *
                             self.learning_rate)
             

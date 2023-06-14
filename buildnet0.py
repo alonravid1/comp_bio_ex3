@@ -5,11 +5,11 @@ rng = np.random.default_rng()
 # Genetic Algorithm Parameters
 POPULATION_SIZE = 100
 MAX_GENERATIONS = 50
-MUTATION_RATE = 0.1
+MUTATION_RATE = 0.4
 REPLICATION_RATE = 0.1
 CROSSOVER_RATE = 1 - REPLICATION_RATE
-TOURNAMENT_SIZE = 12
-LEARNING_RATE = 0.1
+TOURNAMENT_SIZE = 45
+LEARNING_RATE = 0.05
 
 sizes = [16, 32, 16, 1]
 
@@ -50,13 +50,30 @@ for i in range(len(test_data)):
 
 
 # Run the genetic algorithm to train the network
-ga = GeneticAlgorithm(X_train, y_train, rng, sizes,
+# ga = GeneticAlgorithm(X_train, y_train, rng, sizes,
+#                        POPULATION_SIZE, MAX_GENERATIONS, REPLICATION_RATE, CROSSOVER_RATE,
+#                          MUTATION_RATE, LEARNING_RATE, TOURNAMENT_SIZE)
+# best_network = ga.run()
+
+
+with open('results0.csv', 'w') as res_file:
+    res_file.write("POPULATION_SIZE,MAX_GENERATIONS,REPLICATION_RATE,CROSSOVER_RATE,MUTATION_RATE,LEARNING_RATE,TOURNAMENT_SIZE\n")
+
+params = [0.1, 0.2, 0.3, 0.5, 0.75, 1, 1.5]
+
+# run genetic algorithm to train the network over several parameters
+for param in params:
+    ga = GeneticAlgorithm(X_train, y_train, rng, sizes,
                        POPULATION_SIZE, MAX_GENERATIONS, REPLICATION_RATE, CROSSOVER_RATE,
-                         MUTATION_RATE, LEARNING_RATE, TOURNAMENT_SIZE)
-best_network = ga.run()
-# best_network = NeuralNetwork()
-# print(len(best_network.weights1))
-# print(best_network.weights1.shape)
+                         MUTATION_RATE, param, TOURNAMENT_SIZE)
+    best_network = ga.run()
+
+    with open('results0.csv', 'a') as res_file:
+        res_file.write(f"{sizes},{POPULATION_SIZE},{MAX_GENERATIONS},{REPLICATION_RATE},{CROSSOVER_RATE},{MUTATION_RATE},{param},{TOURNAMENT_SIZE}\n")
+        predictions = best_network.forward(X_train)
+        count = sum(predictions[i] == int(y_train[i]) for i in range(len(predictions)))
+        accuracy = count / len(predictions)
+        res_file.write(f"best score: {accuracy}\n")
 
 # Save the best network to a file
 with open('wnet0.txt', 'w') as f:
