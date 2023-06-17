@@ -36,7 +36,7 @@ def get_data(rng):
         num_string = [int(i) for i in string]
 
         X_train.append(np.array(num_string))
-        y_train.append(training_data[i][1].strip('\n'))
+        y_train.append(int(training_data[i][1].strip('\n')))
 
     for i in range(len(test_data)):
         test_data[i] = test_data[i].split('   ')
@@ -46,7 +46,7 @@ def get_data(rng):
         X_test.append(np.array(num_string))
         y_test.append(test_data[i][1].strip('\n'))
 
-    return X_train, y_train, X_test, y_test
+    return np.array(X_train), np.array(y_train), np.array(X_test), np.array(y_test)
 
 if __name__ == "__main__":
     # for multiprocessing
@@ -89,12 +89,13 @@ if __name__ == "__main__":
     fixed_check_param = partial(check_param, param_key=param_key, param_dict=param_dict)
 
     params = [[16, 32, 16, 1], [16, 16, 16, 1], [16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]]
-    
+    results = [fixed_check_param(params[0])]
+
     # run genetic algorithm to train the network over several parameters
-    with mp.Pool() as executor:
-        results = []
-        for param, accuracy in executor.map(fixed_check_param, params):
-            results.append((param, accuracy))
+    # with mp.Pool() as executor:
+    #     results = []
+    #     for param, accuracy in executor.map(fixed_check_param, params):
+    #         results.append((param, accuracy))
 
     # write the results to a file
     with open('results0.csv', 'a') as res_file:
