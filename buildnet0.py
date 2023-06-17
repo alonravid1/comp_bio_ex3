@@ -11,7 +11,7 @@ def check_param(param, param_key, param_dict):
     predictions = best_network.forward(param_dict['X_train'])
     count = sum(predictions[i] == int(param_dict['y_train'][i]) for i in range(len(predictions)))
     accuracy = count / len(predictions)
-    return param, accuracy
+    return param, accuracy, best_network
 
 def get_data(rng):
     # Load the training data
@@ -47,6 +47,13 @@ def get_data(rng):
         y_test.append(test_data[i][1].strip('\n'))
 
     return np.array(X_train, dtype=np.float64), np.array(y_train), np.array(X_test, dtype=np.float64), np.array(y_test)
+
+def timed_run(param):
+    start = time.time()
+    results = [fixed_check_param(param)]
+    end = time.time()
+    print(f"time taken: {end - start}s")
+    return results
 
 if __name__ == "__main__":
     # for multiprocessing
@@ -88,17 +95,21 @@ if __name__ == "__main__":
     # set all rags within the function except for the parameter values, for multiprocessing
     fixed_check_param = partial(check_param, param_key=param_key, param_dict=param_dict)
 
-    params = [[16, 32, 16, 1], [16, 16, 16, 1], [16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]]
+    params = [[16, 32, 16, 1], [16, 16, 16, 1]] #, [16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]]
+    
+    # run without multiprocessing over single value,
+    # prints time taken to run, used for testing:
+    # results = timed_run(params[0])
     start = time.time()
-    results = [fixed_check_param(params[0])]
+    # run genetic algorithm to train the network over several parameters
+    with mp.Pool() as executor:
+        results = []
+        for param, accuracy, best_network in executor.map(fixed_check_param, params):
+            results.append((param, accuracy))
+            # do something with best network later
+
     end = time.time()
     print(f"time taken: {end - start}s")
-    # run genetic algorithm to train the network over several parameters
-    # with mp.Pool() as executor:
-    #     results = []
-    #     for param, accuracy in executor.map(fixed_check_param, params):
-    #         results.append((param, accuracy))
-
     # write the results to a file
     with open('results0.csv', 'a') as res_file:
         for result in results:
