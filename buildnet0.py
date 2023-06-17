@@ -1,17 +1,16 @@
 import numpy as np
 import multiprocessing as mp
-from functools import partial
 from GeneticAlgorithm import GeneticAlgorithm
+from copy import deepcopy
 import time
 
-def check_param(param, param_key, param_dict, executor):
-    param_dict[param_key] = param
+def check_param(param_dict, executor):
     ga = GeneticAlgorithm(param_dict)
     best_network = ga.run(executor)
     predictions = best_network.forward(param_dict['X_train'])
     count = sum(predictions[i] == int(param_dict['y_train'][i]) for i in range(len(predictions)))
     accuracy = count / len(predictions)
-    return param, accuracy, best_network
+    return accuracy, best_network
 
 def get_data(rng):
     # Load the training data
@@ -48,12 +47,12 @@ def get_data(rng):
 
     return np.array(X_train, dtype=np.float64), np.array(y_train), np.array(X_test, dtype=np.float64), np.array(y_test)
 
-def timed_run(param):
-    # start = time.time()
-    results = [fixed_check_param(param)]
-    # end = time.time()
-    # print(f"time taken: {end - start}s")
-    return results
+# def timed_run(param):
+#     # start = time.time()
+#     results = [fixed_check_param(param)]
+#     # end = time.time()
+#     # print(f"time taken: {end - start}s")
+#     return results
 
 if __name__ == "__main__":
     # for multiprocessing
@@ -72,7 +71,7 @@ if __name__ == "__main__":
     MUTATION_RATE = 0.4
     REPLICATION_RATE = 0.1
     CROSSOVER_RATE = 1 - REPLICATION_RATE
-    TOURNAMENT_SIZE = 45
+    TOURNAMENT_SIZE = 60
     LEARNING_RATE = 0.08
 
 
@@ -86,40 +85,49 @@ if __name__ == "__main__":
                 "TOURNAMENT_SIZE": TOURNAMENT_SIZE, "LEARNING_RATE": LEARNING_RATE
                 }
 
-    with open('results0.csv', 'w') as res_file:
-        res_file.write("NETWORK_STRUCTURE,POPULATION_SIZE,MAX_GENERATIONS,REPLICATION_RATE,CROSSOVER_RATE,MUTATION_RATE,LEARNING_RATE,TOURNAMENT_SIZE\n")
-
     # set the parameter to be tested, and which values to test it over
-    param_key = "NETWORK_STRUCTURE"
+    param_key1 = "NETWORK_STRUCTURE"
+    param_key2 = "MUTATION_RATE"
+    params1 = [[16, 32, 16, 1], [16, 16, 16, 1], [16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]]
+    params2 = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
 
-    # set all rags within the function except for the parameter values, for multiprocessing
-    fixed_check_param = partial(check_param, param_key=param_key, param_dict=param_dict)
 
-    params = [[16, 32, 16, 1]] #, [16, 16, 16, 1], [16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]]
-    
-    # run without multiprocessing over single value,
-    # prints time taken to run, used for testing:
-    
-    # results = timed_run(params[0])
+
     start = time.time()
-    # run genetic algorithm to train the network over several parameters
-    # with mp.Pool() as executor:
-    #     results = []
-    #     for param, accuracy, best_network in executor.map(fixed_check_param, params, chunksize=1):
-    #         results.append((param, accuracy))
-    #         # do something with best network later
+
+    results = []
     with mp.Pool() as executor:
-        for param in params:
-            results = [fixed_check_param(param=param, executor=executor)]
+        for param1 in params1:
+            param_dict[param_key1] = param1
+            for param2 in params2:
+                param_dict[param_key2] = param2
+                # set all rags within the function except for the parameter values, for multiprocessing
+                result = check_param(param_dict, executor=executor)
+                results.append([result[0], result[1], deepcopy(param_dict)])
 
     end = time.time()
     print(f"time taken: {end - start}s")
 
     # write the results to a file
-    with open('results0.csv', 'a') as res_file:
-        for result in results:
-            res_file.write(f"{result[0]},{POPULATION_SIZE},{MAX_GENERATIONS},{REPLICATION_RATE},{CROSSOVER_RATE},{MUTATION_RATE},{LEARNING_RATE},{TOURNAMENT_SIZE}\n")
-            res_file.write(f"best score: {result[1]}\n")
+    with open('results0.csv', 'w') as res_file:
+        # write header row, split for readability
+        res_file.write("NETWORK_STRUCTURE,POPULATION_SIZE," +
+                       "MAX_GENERATIONS,REPLICATION_RATE," +
+                       "CROSSOVER_RATE,MUTATION_RATE," +
+                       "LEARNING_RATE,TOURNAMENT_SIZE\n")
+        
+        for accuracy, best_network, result_dict in results:
+            res_file.write(f"{result_dict['NETWORK_STRUCTURE']}," +
+                           f"{result_dict['POPULATION_SIZE']}," +
+                           f"{result_dict['MAX_GENERATIONS']}," +
+                           f"{result_dict['REPLICATION_RATE']}," +
+                           f"{result_dict['CROSSOVER_RATE']}," +
+                           f"{result_dict['MUTATION_RATE']}," +
+                           f"{result_dict['LEARNING_RATE']}," +
+                           f"{result_dict['TOURNAMENT_SIZE']}\n")
+            # currently not saving the best network!
+            # res_file.write(f"best network: {best_network}\n")
+            res_file.write(f"best score: {accuracy}\n")
 
     # Save the best network to a file
     # with open('wnet0.txt', 'w') as f:

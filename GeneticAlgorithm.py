@@ -27,8 +27,7 @@ def jit_forward(X_train, y_train, weights):
 
     return accuracy
 
-def single_forward(iter_args):
-    X_train, y_train, network, i = iter_args
+def single_forward(network, i, X_train, y_train):
     weights = nb.typed.List(network['net'].weights)
     accuracy = jit_forward(X_train, y_train, weights)
     return accuracy, i
@@ -54,7 +53,6 @@ class GeneticAlgorithm:
         self. executor = executor
         for generation in range(self.max_generations):
             # print(f"Generation: {generation + 1}")
-            
 
             sorted_population_scores = self.evaluate_and_sort(population)
 
@@ -65,8 +63,10 @@ class GeneticAlgorithm:
 
             elite_population = self.select(sorted_population_scores)
             crossover_population = self.crossover(sorted_population_scores)
+
             # crossover pop is mutated in the crossover function for efficiency
             self.mutate(elite_population)
+
             population = np.concatenate((elite_population, crossover_population))
             
 
@@ -75,24 +75,27 @@ class GeneticAlgorithm:
 
 
     def evaluate_and_sort(self, population):
-        # vectorize the forward function to increase code efficiency
-        # vec_forward = np.vectorize(self.single_forward, excluded=['X_train', 'y_train'])
-        
-        start = time.time()
+        # start = time.time()
+
         # Evaluate the networks in parallel using the pool
-        iter_args = [[self.X_train, self.y_train, population[i], i] for i in range(self.population_size)]
-        for score, i in self.executor.map(single_forward, iter_args):
+        iter_args = [(population[i], i) for i in range(self.population_size)]
+
+        fixed_single_forward = partial(single_forward, X_train=self.X_train, y_train=self.y_train)
+
+        for score, i in self.executor.starmap(fixed_single_forward, iter_args):
             population[i]['score'] = score
-        end = time.time()
-        print(f"time taken: {end - start}s")
+
+        # end = time.time()
+        # print(f"time taken: {end - start}s")
+
         sorted_population_scores = np.sort(population, order='score')[::-1]
 
-        # population = np.sort(population, order='score')
         # print("before:")
         # print(population['score'])
         # population = population[::-1]
         # print("after:")
         # print(population['score'])
+
         return sorted_population_scores
 
 
