@@ -1,6 +1,8 @@
 import numpy as np
 import numba as nb
 from NeuralNetwork import NeuralNetwork
+import multiprocessing as mp
+from functools import partial
 import time
 
 @nb.jit(nopython=True, cache=True)
@@ -25,6 +27,13 @@ def jit_forward(X_train, y_train, weights):
 
     return accuracy
 
+def single_forward(iter_args):
+    X_train, y_train, network, i = iter_args
+    weights = nb.typed.List(network['net'].weights)
+    accuracy = jit_forward(X_train, y_train, weights)
+    return accuracy, i
+
+
 class GeneticAlgorithm:
     def __init__(self, param_dict):
         self.X_train = param_dict['X_train']
@@ -39,38 +48,14 @@ class GeneticAlgorithm:
         self.learning_rate = param_dict['LEARNING_RATE']
         self.tournament_size = param_dict['TOURNAMENT_SIZE']
     
-        
-    def single_forward(self, X_train, y_train, network):
-        """forward propogate the input through the networks
-
-        Args:
-            inputs (nd.array): input data
-            networks (nd.array): array of network scores and classes
-
-        Returns:
-            nd.array: predictions
-        """
-        # x = np.copy(X_train)
-        # for weight in network.weights:
-        #     hidden = np.dot(x, weight)
-        #     x = network.sigmoid(hidden)
-        
-        # answer = x.flatten()
-        # predictions = np.where(answer > 0.5, 1, 0)
-        # predictions -= y_train
-        # accuracy = np.count_nonzero(predictions) / len(predictions)
-        weights = nb.typed.List(network.weights)
-        accuracy = jit_forward(X_train, y_train, weights)
-
-        return accuracy
-    
-
-    def run(self):
+    def run(self, executor):
         population = np.array([(0, NeuralNetwork(self.rng, self.sizes)) for i in range(self.population_size)],
                           dtype=[('score', float), ('net', NeuralNetwork)])
-
+        self. executor = executor
         for generation in range(self.max_generations):
             # print(f"Generation: {generation + 1}")
+            
+
             sorted_population_scores = self.evaluate_and_sort(population)
 
             # print the best network in the generation
@@ -91,16 +76,24 @@ class GeneticAlgorithm:
 
     def evaluate_and_sort(self, population):
         # vectorize the forward function to increase code efficiency
-        vec_forward = np.vectorize(self.single_forward, excluded=['X_train', 'y_train'])
-        population['score'] = vec_forward(X_train=self.X_train, y_train=self.y_train, network=population['net'])
+        # vec_forward = np.vectorize(self.single_forward, excluded=['X_train', 'y_train'])
+        
+        start = time.time()
+        # Evaluate the networks in parallel using the pool
+        iter_args = [[self.X_train, self.y_train, population[i], i] for i in range(self.population_size)]
+        for score, i in self.executor.map(single_forward, iter_args):
+            population[i]['score'] = score
+        end = time.time()
+        print(f"time taken: {end - start}s")
+        sorted_population_scores = np.sort(population, order='score')[::-1]
 
-        population = np.sort(population, order='score')
+        # population = np.sort(population, order='score')
         # print("before:")
         # print(population['score'])
-        population = population[::-1]
+        # population = population[::-1]
         # print("after:")
         # print(population['score'])
-        return population
+        return sorted_population_scores
 
 
     def select(self, sorted_population):
