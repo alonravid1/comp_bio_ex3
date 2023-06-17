@@ -1,5 +1,14 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from GeneticAlgorithm import GeneticAlgorithm
+
+# Plotting function
+def plot_results(x_values, y_values, x_label, y_label):
+    plt.plot(x_values, y_values)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.show()
+
 
 rng = np.random.default_rng()
 
@@ -14,9 +23,6 @@ LEARNING_RATE = 0.1
 INPUT_SIZE = 16
 
 sizes = [INPUT_SIZE, 32, 16, 1]
-
-# TODO:
-# 1 Build the network with the given parameters
 
 # Load the training data
 training_data = open("training_set.txt", "r").readlines()
@@ -56,11 +62,7 @@ for i in range(len(test_data)):
 #                          MUTATION_RATE, LEARNING_RATE, TOURNAMENT_SIZE)
 # best_network = ga.run()
 
-
-with open('results_TOURNAMENT_SIZE.csv', 'w') as res_file:
-    res_file.write(
-        "POPULATION_SIZE,MAX_GENERATIONS,REPLICATION_RATE,CROSSOVER_RATE,MUTATION_RATE,LEARNING_RATE,TOURNAMENT_SIZE\n")
-
+results = []
 params = [45, 50, 55, 60, 65, 70, 75, 80]
 
 # run genetic algorithm to train the network over several parameters
@@ -70,20 +72,20 @@ for param in params:
                           MUTATION_RATE, LEARNING_RATE, param)
     best_network = ga.run()
 
-    with open('results_TOURNAMENT_SIZE.csv', 'a') as res_file:
-        res_file.write(
-            f"{sizes},{POPULATION_SIZE},{MAX_GENERATIONS},{REPLICATION_RATE},{CROSSOVER_RATE},{MUTATION_RATE},{param},{TOURNAMENT_SIZE}\n")
-        predictions = best_network.forward(X_train)
-        count = sum(predictions[i] == int(y_train[i]) for i in range(len(predictions)))
-        accuracy = count / len(predictions)
-        res_file.write(f"best score: {accuracy}\n")
+    predictions = best_network.forward(X_train)
+    count = sum(predictions[i] == int(y_train[i]) for i in range(len(predictions)))
+    accuracy = count / len(predictions)
+    results.append(accuracy)
 
-# Save the best network to a file
-with open('wnet0.txt', 'w') as f:
-    for weight in best_network.weights:
-        for i in range(weight.shape[0]):
-            for j in range(weight.shape[1] - 1):
-                f.write(f"{weight[i][j]},")
-            f.write(f"{weight[i][-1]}")
-            f.write("\n")
-        f.write("end of layer\n")
+    # Save the best network to a file
+    with open(f'wnet{param}.txt', 'w') as f:
+        for weight in best_network.weights:
+            for i in range(weight.shape[0]):
+                for j in range(weight.shape[1] - 1):
+                    f.write(f"{weight[i][j]},")
+                f.write(f"{weight[i][-1]}")
+                f.write("\n")
+            f.write("end of layer\n")
+
+# Plot the results
+plot_results(params, results, "Tournament Size", "Accuracy")
