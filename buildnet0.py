@@ -61,7 +61,7 @@ if __name__ == "__main__":
     # Genetic Algorithm Parameters
     NETWORK_STRUCTURE = [16, 32, 16, 1]
     POPULATION_SIZE = 100
-    MAX_GENERATIONS = 2
+    MAX_GENERATIONS = 50
     MUTATION_RATE = 0.4
     REPLICATION_RATE = 0.1
     CROSSOVER_RATE = 1 - REPLICATION_RATE
@@ -88,8 +88,7 @@ if __name__ == "__main__":
     # set all rags within the function except for the parameter values, for multiprocessing
     fixed_check_param = partial(check_param, param_key=param_key, param_dict=param_dict)
 
-    #[16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]
-    params = [[16, 32, 16, 1], [16, 16, 16, 1]]
+    params = [[16, 32, 16, 1], [16, 16, 16, 1], [16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]]
     
     # run genetic algorithm to train the network over several parameters
     with mp.Pool() as executor:
@@ -97,8 +96,7 @@ if __name__ == "__main__":
         for param, accuracy in executor.map(fixed_check_param, params):
             results.append((param, accuracy))
 
-    # results = [fixed_check_param(params[0])]
-
+    # write the results to a file
     with open('results0.csv', 'a') as res_file:
         for result in results:
             res_file.write(f"{result[0]},{POPULATION_SIZE},{MAX_GENERATIONS},{REPLICATION_RATE},{CROSSOVER_RATE},{MUTATION_RATE},{LEARNING_RATE},{TOURNAMENT_SIZE}\n")
