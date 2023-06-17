@@ -1,22 +1,19 @@
 import numpy as np
 from NeuralNetwork import NeuralNetwork
 class GeneticAlgorithm:
-    def __init__(self, X_train, y_train, rng, sizes, population_size, max_generations,
-                  replication_rate, crossover_rate, mutation_rate,
-                    learning_rate, tournament_size):
-        self.X_train = X_train
-        self.y_train = y_train
-        self.sizes = sizes
-        self.rng = rng
-        self.population_size = population_size
-        self.max_generations = max_generations
-        self.replication_rate = replication_rate
-        self.crossover_rate = crossover_rate
-        self.mutation_rate = mutation_rate
-        self.learning_rate = learning_rate
-        self.tournament_size = tournament_size
+    def __init__(self, param_dict):
+        self.X_train = param_dict['X_train']
+        self.y_train = param_dict['y_train']
+        self.rng = param_dict['rng']
+        self.sizes = param_dict['NETWORK_STRUCTURE']
+        self.population_size = param_dict['POPULATION_SIZE']
+        self.max_generations = param_dict['MAX_GENERATIONS']
+        self.replication_rate = param_dict['REPLICATION_RATE']
+        self.crossover_rate = param_dict['CROSSOVER_RATE']
+        self.mutation_rate = param_dict['MUTATION_RATE']
+        self.learning_rate = param_dict['LEARNING_RATE']
+        self.tournament_size = param_dict['TOURNAMENT_SIZE']
 
-    
     def run(self):
         population = np.array([(0, NeuralNetwork(self.rng, self.sizes)) for i in range(self.population_size)],
                           dtype=[('score', float), ('net', NeuralNetwork)])
@@ -31,8 +28,9 @@ class GeneticAlgorithm:
 
             elite_population = self.select(sorted_population_scores)
             crossover_population = self.crossover(sorted_population_scores)
+            self.mutate(elite_population)
             population = np.concatenate((elite_population, crossover_population))
-            self.mutate(population)
+            
 
         best_network = population[0]['net']
         return best_network
@@ -44,6 +42,11 @@ class GeneticAlgorithm:
             count = sum(predictions[i] == int(self.y_train[i]) for i in range(len(predictions)))
             accuracy = count / len(predictions)
             population[i]['score'] = accuracy
+
+        # predictions = population['net'].forward(self.X_train)
+        # count = np.sum(predictions == self.y_train.reshape(-1, 1), axis=1)
+        # accuracy = count / len(predictions)
+        # population['score'] = accuracy
 
         population = np.sort(population, order='score')
         print("before:")
@@ -79,10 +82,19 @@ class GeneticAlgorithm:
             random_assignments = self.rng.integers(0, 2, size=(len(self.sizes)-1))
             
             for j in range(len(random_assignments)):
-                if random_assignments[j] == 0:
-                    child.weights[j] = np.copy(parent1['net'].weights[j])
+                # add mutation to crossover product children here to increase code efficiency
+                if self.rng.random() < self.mutation_rate:
+                    if random_assignments[j] == 0:
+                        child.weights[j] = (np.copy(parent1['net'].weights[j]) + 
+                        (self.rng.standard_normal(size=parent1['net'].weights[j].shape) * self.learning_rate))
+                    else:
+                        child.weights[j] = (np.copy(parent2['net'].weights[j]) + 
+                        (self.rng.standard_normal(size=parent2['net'].weights[j].shape) * self.learning_rate))
                 else:
-                    child.weights[j] = np.copy(parent2['net'].weights[j])
+                    if random_assignments[j] == 0:
+                        child.weights[j] = np.copy(parent1['net'].weights[j])
+                    else:
+                        child.weights[j] = np.copy(parent2['net'].weights[j])
             
             offsprings[i]['score'] = 0
             offsprings[i]['net'] = child
@@ -90,7 +102,12 @@ class GeneticAlgorithm:
         return offsprings
 
     def mutate(self, networks):
-        for net_index in range(1, self.population_size):
+        """mutate the weights of the elite networks
+
+        Args:
+            networks (nd.array): array of network scores and classes
+        """
+        for net_index in range(1, networks.shape[0]):
             for i in range(len(networks[net_index]['net'].weights)):
                     if self.rng.random() < self.mutation_rate:
                         networks[net_index]['net'].weights[i] += (self.rng.standard_normal(size=networks[net_index]['net'].weights[i].shape) *

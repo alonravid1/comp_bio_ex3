@@ -4,12 +4,12 @@ from functools import partial
 from GeneticAlgorithm import GeneticAlgorithm
 
 
-def check_param(param, param_key, X_train, y_train, rng, param_dict):
+def check_param(param, param_key, param_dict):
     param_dict[param_key] = param
-    ga = GeneticAlgorithm(X_train, y_train, rng, *list(param_dict.values()))
+    ga = GeneticAlgorithm(param_dict)
     best_network = ga.run()
-    predictions = best_network.forward(X_train)
-    count = sum(predictions[i] == int(y_train[i]) for i in range(len(predictions)))
+    predictions = best_network.forward(param_dict['X_train'])
+    count = sum(predictions[i] == int(param_dict['y_train'][i]) for i in range(len(predictions)))
     accuracy = count / len(predictions)
     return param, accuracy
 
@@ -71,30 +71,38 @@ if __name__ == "__main__":
 
     # write a dictionary of the above parameters
     # write a function that takes in a dictionary of parameters and runs the genetic algorithm
-    param_dict = {"NETWORK_STRUCTURE": NETWORK_STRUCTURE, "POPULATION_SIZE": POPULATION_SIZE, "MAX_GENERATIONS": MAX_GENERATIONS,
-                "MUTATION_RATE": MUTATION_RATE, "REPLICATION_RATE": REPLICATION_RATE,
-                    "CROSSOVER_RATE": CROSSOVER_RATE, "TOURNAMENT_SIZE": TOURNAMENT_SIZE,
-                    "LEARNING_RATE": LEARNING_RATE}
+    param_dict = {
+                "X_train": X_train, "y_train": y_train, "rng": rng ,
+                "NETWORK_STRUCTURE": NETWORK_STRUCTURE, "POPULATION_SIZE": POPULATION_SIZE,
+                "MAX_GENERATIONS": MAX_GENERATIONS, "MUTATION_RATE": MUTATION_RATE,
+                "REPLICATION_RATE": REPLICATION_RATE, "CROSSOVER_RATE": CROSSOVER_RATE,
+                "TOURNAMENT_SIZE": TOURNAMENT_SIZE, "LEARNING_RATE": LEARNING_RATE
+                }
 
     with open('results0.csv', 'w') as res_file:
         res_file.write("NETWORK_STRUCTURE,POPULATION_SIZE,MAX_GENERATIONS,REPLICATION_RATE,CROSSOVER_RATE,MUTATION_RATE,LEARNING_RATE,TOURNAMENT_SIZE\n")
 
     # set the parameter to be tested, and which values to test it over
     param_key = "NETWORK_STRUCTURE"
+
+    # set all rags within the function except for the parameter values, for multiprocessing
+    fixed_check_param = partial(check_param, param_key=param_key, param_dict=param_dict)
+
     #[16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]
     params = [[16, 32, 16, 1], [16, 16, 16, 1]]
     
-    # set all rags within the function except for the parameter values, for multiprocessing
-    fixed_check_param = partial(check_param, param_key=param_key, X_train=X_train,
-                                y_train=y_train, rng=rng, param_dict=param_dict)
     # run genetic algorithm to train the network over several parameters
     with mp.Pool() as executor:
-        results = executor.map_async(fixed_check_param, params)
+        results = []
+        for param, accuracy in executor.map(fixed_check_param, params):
+            results.append((param, accuracy))
+
+    # results = [fixed_check_param(params[0])]
 
     with open('results0.csv', 'a') as res_file:
-        for param, accuracy in results.get():
-            res_file.write(f"{param},{POPULATION_SIZE},{MAX_GENERATIONS},{REPLICATION_RATE},{CROSSOVER_RATE},{MUTATION_RATE},{LEARNING_RATE},{TOURNAMENT_SIZE}\n")
-            res_file.write(f"best score: {accuracy}\n")
+        for result in results:
+            res_file.write(f"{result[0]},{POPULATION_SIZE},{MAX_GENERATIONS},{REPLICATION_RATE},{CROSSOVER_RATE},{MUTATION_RATE},{LEARNING_RATE},{TOURNAMENT_SIZE}\n")
+            res_file.write(f"best score: {result[1]}\n")
 
     # Save the best network to a file
     # with open('wnet0.txt', 'w') as f:

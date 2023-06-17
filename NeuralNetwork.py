@@ -11,19 +11,15 @@ class NeuralNetwork:
             self.weights.append(self.rng.standard_normal(size=(self.sizes[i], self.sizes[i+1])))
             
     def forward(self, inputs):
-        predictions = []
-        for x in inputs:           
-            temp_x = np.copy(x)
-            for weight in self.weights:
-                self.hidden = np.dot(temp_x, weight)
-                self.hidden_activation = self.sigmoid(self.hidden)
-                temp_x = self.hidden_activation
+        x = np.copy(inputs)
+        for weight in self.weights:
+            self.hidden = np.dot(x, weight)
+            self.hidden_activation = self.sigmoid(self.hidden)
+            x = self.hidden_activation
             
-            answer = temp_x.flatten()
-            if answer >= 0.5:
-                predictions.append(1)
-            else:
-                predictions.append(0)
+        
+        answer = x.flatten()
+        predictions = np.where(answer > 0.5, 1, 0)
 
         return predictions
 
