@@ -70,11 +70,8 @@ class GeneticAlgorithm:
                           dtype=[('score', float), ('net', NeuralNetwork)])
 
         for generation in range(self.max_generations):
-            time_start = time.time()
             # print(f"Generation: {generation + 1}")
             sorted_population_scores = self.evaluate_and_sort(population)
-            time_end = time.time()
-            print(f"best: {sorted_population_scores[0]['score']}, finished in {time_end-time_start} seconds")
 
             # print the best network in the generation
             # print(f"Best network: {sorted_population_scores[0]['net']}")

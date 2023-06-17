@@ -2,7 +2,7 @@ import numpy as np
 import multiprocessing as mp
 from functools import partial
 from GeneticAlgorithm import GeneticAlgorithm
-
+import time
 
 def check_param(param, param_key, param_dict):
     param_dict[param_key] = param
@@ -89,8 +89,10 @@ if __name__ == "__main__":
     fixed_check_param = partial(check_param, param_key=param_key, param_dict=param_dict)
 
     params = [[16, 32, 16, 1], [16, 16, 16, 1], [16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]]
+    start = time.time()
     results = [fixed_check_param(params[0])]
-
+    end = time.time()
+    print(f"time taken: {end - start}s")
     # run genetic algorithm to train the network over several parameters
     # with mp.Pool() as executor:
     #     results = []
