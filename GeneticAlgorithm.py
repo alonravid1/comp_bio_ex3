@@ -7,7 +7,8 @@ import time
 
 @nb.jit(nopython=True, cache=True)
 def jit_forward(X_train, y_train, weights):
-    """forward propogate the input through the networks
+    """forward propogate the input through the networks,
+    jit copmiles the function to machine code for faster execution
 
     Args:
         inputs (nd.array): input data
@@ -19,6 +20,7 @@ def jit_forward(X_train, y_train, weights):
     x = X_train.copy()
     for weight in weights:
         hidden = np.dot(x, weight)
+        # sigmoid activation function, numba doesnt work with class functions
         x = 1 / (1 + np.exp(-hidden))
     
     answer = x.flatten()
@@ -28,6 +30,20 @@ def jit_forward(X_train, y_train, weights):
     return accuracy
 
 def single_forward(network, i, X_train, y_train):
+    """forward propogate the input through the networks,
+    the function takes the NueralNetwork object and the input data
+    and sends it as arrays so numba can compile it without
+    issues for much faster execution
+
+    Args:
+        network (_type_): _description_
+        i (_type_): _description_
+        X_train (_type_): _description_
+        y_train (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     weights = nb.typed.List(network['net'].weights)
     accuracy = jit_forward(X_train, y_train, weights)
     return accuracy, i
@@ -42,18 +58,35 @@ class GeneticAlgorithm:
         self.population_size = param_dict['POPULATION_SIZE']
         self.max_generations = param_dict['MAX_GENERATIONS']
         self.replication_rate = param_dict['REPLICATION_RATE']
-        self.crossover_rate = param_dict['CROSSOVER_RATE']
+        self.crossover_rate = 1 - self.replication_rate
         self.mutation_rate = param_dict['MUTATION_RATE']
         self.learning_rate = param_dict['LEARNING_RATE']
         self.tournament_size = param_dict['TOURNAMENT_SIZE']
+
+        # this makes sure the replication and crossover rates are even numbers,
+        # preventing population size from changing
+        self.replication_size = (int(self.population_size * self.replication_rate) + 
+                                int(self.population_size * self.replication_rate) % 2)
+        self.cross_size = self.population_size - self.replication_size
     
     def run(self, executor):
+        """run the genetic algorithm
+
+        Args:
+            executor (multiprocessing.Pool): a pool of processes to run the algorithm in parallel
+
+        Returns:
+            _type_: _description_
+        """
         population = np.array([(0, NeuralNetwork(self.rng, self.sizes)) for i in range(self.population_size)],
                           dtype=[('score', float), ('net', NeuralNetwork)])
+        
         self. executor = executor
         for generation in range(self.max_generations):
             # print(f"Generation: {generation + 1}")
 
+            # evaluate the population and sort it by score, efficiency
+            # changes were made mostly here
             sorted_population_scores = self.evaluate_and_sort(population)
 
             # print the best network in the generation
@@ -75,18 +108,29 @@ class GeneticAlgorithm:
 
 
     def evaluate_and_sort(self, population):
-        # start = time.time()
+        """
+        evaluate the networks in the population and sort them by score
+        
+        Args:
+            population (nd.array): array of network scores and classes
+        Returns:
+            _type_: _description_
+        """
 
-        # Evaluate the networks in parallel using the pool
+        # start = time.time() # run time testing
+
+        # prepare the arguments for the pool
         iter_args = [(population[i], i) for i in range(self.population_size)]
 
+        # fix the arguments for the pool, so X_train and y_train dont have to be copied 100 times
         fixed_single_forward = partial(single_forward, X_train=self.X_train, y_train=self.y_train)
 
+        # parallel execution of the forward propogation for the generation
         for score, i in self.executor.starmap(fixed_single_forward, iter_args):
             population[i]['score'] = score
 
-        # end = time.time()
-        # print(f"time taken: {end - start}s")
+        # end = time.time() # run time testing
+        # print(f"time taken: {end - start}s") # run time testing
 
         sorted_population_scores = np.sort(population, order='score')[::-1]
 
@@ -100,24 +144,23 @@ class GeneticAlgorithm:
 
 
     def select(self, sorted_population):
-        elite_count = int(self.replication_rate * self.population_size)
-        return sorted_population[:elite_count]
+        return sorted_population[:self.replication_size]
 
 
     def crossover(self, sorted_population):
-        cross_size = int(self.population_size * self.crossover_rate)
-        offsprings = np.array([(0, None) for i in range(cross_size)], dtype=[('score', float), ('net', NeuralNetwork)])
-        tournament_winners = np.array([(0, None) for i in range(cross_size)],
+        offsprings = np.array([(0, None) for i in range(self.cross_size)], dtype=[('score', float), ('net', NeuralNetwork)])
+        tournament_winners = np.array([(0, None) for i in range(self.cross_size)],
                                     dtype=[('score', float), ('net', NeuralNetwork)])
 
         total_score = sorted_population['score'].sum()
         sorted_population['score'] = sorted_population['score'] / total_score
-        for i in range(cross_size):
+
+        for i in range(self.cross_size):
             tournament_scores = self.rng.choice(sorted_population, p=sorted_population['score'], size=self.tournament_size)
             tournament_scores = np.sort(tournament_scores, order='score')
             tournament_winners[i] = tournament_scores[-1]
 
-        for i in range(cross_size):
+        for i in range(self.cross_size):
             parent1 = self.rng.choice(tournament_winners)  # Extract the network object from the tuple
             parent2 = self.rng.choice(tournament_winners)  # Extract the network object from the tuple
             child = NeuralNetwork(self.rng, self.sizes)

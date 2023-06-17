@@ -60,11 +60,11 @@ if __name__ == "__main__":
 
     rng = np.random.default_rng()
 
-    # Load the training and test data
+    # load the training and test data
     X_train, y_train, X_test, y_test = get_data(rng)
 
 
-    # Genetic Algorithm Parameters
+    # default Genetic Algorithm parameters
     NETWORK_STRUCTURE = [16, 32, 16, 1]
     POPULATION_SIZE = 100
     MAX_GENERATIONS = 50
@@ -81,16 +81,19 @@ if __name__ == "__main__":
                 "X_train": X_train, "y_train": y_train, "rng": rng ,
                 "NETWORK_STRUCTURE": NETWORK_STRUCTURE, "POPULATION_SIZE": POPULATION_SIZE,
                 "MAX_GENERATIONS": MAX_GENERATIONS, "MUTATION_RATE": MUTATION_RATE,
-                "REPLICATION_RATE": REPLICATION_RATE, "CROSSOVER_RATE": CROSSOVER_RATE,
-                "TOURNAMENT_SIZE": TOURNAMENT_SIZE, "LEARNING_RATE": LEARNING_RATE
+                "REPLICATION_RATE": REPLICATION_RATE,"TOURNAMENT_SIZE": TOURNAMENT_SIZE,
+                 "LEARNING_RATE": LEARNING_RATE
                 }
 
     # set the parameter to be tested, and which values to test it over
     param_key1 = "NETWORK_STRUCTURE"
     param_key2 = "MUTATION_RATE"
-    params1 = [[16, 32, 16, 1], [16, 16, 16, 1], [16, 64, 32, 1], [16, 64, 16, 1], [16, 16, 32, 1], [16, 32, 64, 32, 1]]
-    params2 = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
-
+    param_key3 = "REPLICATION_RATE"
+    params1 = [[16, 32, 16, 1], [16, 16, 16, 1],
+                [16, 64, 32, 1], [16, 64, 16, 1],
+                  [16, 16, 32, 1], [16, 32, 64, 32, 1]]
+    params2 = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5]
+    params3 = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5]
 
 
     start = time.time()
@@ -101,19 +104,22 @@ if __name__ == "__main__":
             param_dict[param_key1] = param1
             for param2 in params2:
                 param_dict[param_key2] = param2
-                # set all rags within the function except for the parameter values, for multiprocessing
-                result = check_param(param_dict, executor=executor)
-                results.append([result[0], result[1], deepcopy(param_dict)])
+                for param3 in params3:
+                    param_dict[param_key3] = param3
+                    # set all rags within the function except for the parameter values, for multiprocessing
+                    result = check_param(param_dict, executor=executor)
+                    results.append([result[0], result[1], deepcopy(param_dict)])
 
     end = time.time()
     print(f"time taken: {end - start}s")
-
+    best_network = None
+    best_accuracy = 0
     # write the results to a file
     with open('results0.csv', 'w') as res_file:
         # write header row, split for readability
         res_file.write("NETWORK_STRUCTURE,POPULATION_SIZE," +
                        "MAX_GENERATIONS,REPLICATION_RATE," +
-                       "CROSSOVER_RATE,MUTATION_RATE," +
+                       "MUTATION_RATE," +
                        "LEARNING_RATE,TOURNAMENT_SIZE\n")
         
         for accuracy, best_network, result_dict in results:
@@ -121,20 +127,21 @@ if __name__ == "__main__":
                            f"{result_dict['POPULATION_SIZE']}," +
                            f"{result_dict['MAX_GENERATIONS']}," +
                            f"{result_dict['REPLICATION_RATE']}," +
-                           f"{result_dict['CROSSOVER_RATE']}," +
                            f"{result_dict['MUTATION_RATE']}," +
                            f"{result_dict['LEARNING_RATE']}," +
                            f"{result_dict['TOURNAMENT_SIZE']}\n")
-            # currently not saving the best network!
-            # res_file.write(f"best network: {best_network}\n")
+            
             res_file.write(f"best score: {accuracy}\n")
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                best_network = best_network
 
-    # Save the best network to a file
-    # with open('wnet0.txt', 'w') as f:
-    #     for weight in best_network.weights:
-    #         for i in range(weight.shape[0]):
-    #             for j in range(weight.shape[1]-1):
-    #                 f.write(f"{weight[i][j]},")
-    #             f.write(f"{weight[i][-1]}")
-    #             f.write("\n")
-    #         f.write("end of layer\n")
+    # Save the best network weights to a file
+    with open('wnet0.txt', 'w') as f:
+        for weight in best_network.weights:
+            for i in range(weight.shape[0]):
+                for j in range(weight.shape[1]-1):
+                    f.write(f"{weight[i][j]},")
+                f.write(f"{weight[i][-1]}")
+                f.write("\n")
+            f.write("end of layer\n")
