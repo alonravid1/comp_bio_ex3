@@ -46,7 +46,7 @@ def get_data(rng):
         X_test.append(np.array(num_string))
         y_test.append(test_data[i][1].strip('\n'))
 
-    return np.array(X_train), np.array(y_train), np.array(X_test), np.array(y_test)
+    return np.array(X_train, dtype=np.float64), np.array(y_train), np.array(X_test, dtype=np.float64), np.array(y_test)
 
 if __name__ == "__main__":
     # for multiprocessing

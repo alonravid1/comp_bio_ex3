@@ -1,7 +1,29 @@
 import numpy as np
-from numba import jit
+import numba as nb
 from NeuralNetwork import NeuralNetwork
 import time
+
+@nb.jit(nopython=True, cache=True)
+def jit_forward(X_train, y_train, weights):
+    """forward propogate the input through the networks
+
+    Args:
+        inputs (nd.array): input data
+        networks (nd.array): array of network scores and classes
+
+    Returns:
+        nd.array: predictions
+    """
+    x = X_train.copy()
+    for weight in weights:
+        hidden = np.dot(x, weight)
+        x = 1 / (1 + np.exp(-hidden))
+    
+    answer = x.flatten()
+    predictions = np.round(answer)
+    accuracy = sum([predictions[i] == int(y_train[i]) for i in range(len(y_train))]) / len(y_train)
+
+    return accuracy
 
 class GeneticAlgorithm:
     def __init__(self, param_dict):
@@ -16,8 +38,7 @@ class GeneticAlgorithm:
         self.mutation_rate = param_dict['MUTATION_RATE']
         self.learning_rate = param_dict['LEARNING_RATE']
         self.tournament_size = param_dict['TOURNAMENT_SIZE']
-
-    # def jit_forward(self, X_train, y_train, weights):
+    
         
     def single_forward(self, X_train, y_train, network):
         """forward propogate the input through the networks
@@ -29,15 +50,17 @@ class GeneticAlgorithm:
         Returns:
             nd.array: predictions
         """
-        x = np.copy(X_train)
-        for weight in network.weights:
-            hidden = np.dot(x, weight)
-            x = network.sigmoid(hidden)
+        # x = np.copy(X_train)
+        # for weight in network.weights:
+        #     hidden = np.dot(x, weight)
+        #     x = network.sigmoid(hidden)
         
-        answer = x.flatten()
-        predictions = np.where(answer > 0.5, 1, 0)
-        predictions -= y_train
-        accuracy = np.count_nonzero(predictions) / len(predictions)
+        # answer = x.flatten()
+        # predictions = np.where(answer > 0.5, 1, 0)
+        # predictions -= y_train
+        # accuracy = np.count_nonzero(predictions) / len(predictions)
+        weights = nb.typed.List(network.weights)
+        accuracy = jit_forward(X_train, y_train, weights)
 
         return accuracy
     
@@ -50,7 +73,9 @@ class GeneticAlgorithm:
             time_start = time.time()
             # print(f"Generation: {generation + 1}")
             sorted_population_scores = self.evaluate_and_sort(population)
-            
+            time_end = time.time()
+            print(f"best: {sorted_population_scores[0]['score']}, finished in {time_end-time_start} seconds")
+
             # print the best network in the generation
             # print(f"Best network: {sorted_population_scores[0]['net']}")
             # print the best score in the generation
@@ -61,8 +86,6 @@ class GeneticAlgorithm:
             # crossover pop is mutated in the crossover function for efficiency
             self.mutate(elite_population)
             population = np.concatenate((elite_population, crossover_population))
-            time_end = time.time()
-            print(f"finished in {time_end-time_start} seconds")
             
 
         best_network = population[0]['net']
