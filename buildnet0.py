@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import multiprocessing as mp
 from GeneticAlgorithm import GeneticAlgorithm
 from copy import deepcopy
@@ -89,12 +90,9 @@ if __name__ == "__main__":
     param_key1 = "NETWORK_STRUCTURE"
     param_key2 = "MUTATION_RATE"
     param_key3 = "REPLICATION_RATE"
-    params1 = [[16, 32, 16, 1], [16, 16, 16, 1],
-                [16, 64, 32, 1], [16, 64, 16, 1],
-                  [16, 16, 32, 1], [16, 32, 64, 32, 1]]
-    params2 = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5]
-    params3 = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5]
-
+    params1 = [[16, 32, 16, 1],
+                [16, 64, 32, 1], [16, 64, 16, 1]]
+    params2 = [0.5, 0.6]
 
     start = time.time()
 
@@ -104,11 +102,12 @@ if __name__ == "__main__":
             param_dict[param_key1] = param1
             for param2 in params2:
                 param_dict[param_key2] = param2
-                for param3 in params3:
-                    param_dict[param_key3] = param3
-                    # set all rags within the function except for the parameter values, for multiprocessing
+                avg_score = 0
+                for i in range(10):
                     result = check_param(param_dict, executor=executor)
-                    results.append([result[0], result[1], deepcopy(param_dict)])
+                    avg_score += result[0]
+                avg_score /= 10
+                results.append([avg_score, result[1], deepcopy(param_dict)])
 
     end = time.time()
     print(f"time taken: {end - start}s")
@@ -120,22 +119,31 @@ if __name__ == "__main__":
         res_file.write("NETWORK_STRUCTURE,POPULATION_SIZE," +
                        "MAX_GENERATIONS,REPLICATION_RATE," +
                        "MUTATION_RATE," +
-                       "LEARNING_RATE,TOURNAMENT_SIZE\n")
+                       "LEARNING_RATE,TOURNAMENT_SIZE,BEST_SCORE\n")
         
         for accuracy, best_network, result_dict in results:
-            res_file.write(f"{result_dict['NETWORK_STRUCTURE']}," +
+            arr_rep = str(result_dict['NETWORK_STRUCTURE']).split("[")[1].split("]")[0].split(",")
+            res_file.write("".join(arr_rep) + "," +
                            f"{result_dict['POPULATION_SIZE']}," +
                            f"{result_dict['MAX_GENERATIONS']}," +
                            f"{result_dict['REPLICATION_RATE']}," +
                            f"{result_dict['MUTATION_RATE']}," +
                            f"{result_dict['LEARNING_RATE']}," +
-                           f"{result_dict['TOURNAMENT_SIZE']}\n")
+                           f"{result_dict['TOURNAMENT_SIZE']}," +
+                           f"{accuracy}\n")
             
-            res_file.write(f"best score: {accuracy}\n")
             if accuracy > best_accuracy:
                 best_accuracy = accuracy
                 best_network = best_network
 
+    # create dataframe from results file, get max accuracy row
+    with open('results0.csv', 'r') as res_file:
+        df = pd.read_csv(res_file)
+        # get max BEST_SCORE index
+        max_accuracy = df['BEST_SCORE'].idxmax()
+        print(df.head())
+        # print(df.iloc[max_accuracy])
+        
     # Save the best network weights to a file
     with open('wnet0.txt', 'w') as f:
         for weight in best_network.weights:
