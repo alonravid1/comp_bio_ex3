@@ -22,7 +22,7 @@ def jit_forward(X_train, y_train, weights):
         hidden = np.dot(x, weight)
         # sigmoid activation function, numba doesnt work with class functions
         x = 1 / (1 + np.exp(-hidden))
-    
+
     answer = x.flatten()
     predictions = np.round(answer)
     accuracy = sum([predictions[i] == int(y_train[i]) for i in range(len(y_train))]) / len(y_train)
@@ -55,9 +55,9 @@ class GeneticAlgorithm:
         self.y_train = param_dict['y_train']
         self.rng = param_dict['rng']
         self.sizes = param_dict['NETWORK_STRUCTURE']
-        self.population_size = param_dict['POPULATION_SIZE']
+        self.population_size = int(param_dict['POPULATION_SIZE'])
         self.max_generations = param_dict['MAX_GENERATIONS']
-        self.replication_rate = param_dict['REPLICATION_RATE']
+        self.replication_rate = float(param_dict['REPLICATION_RATE'])
         self.crossover_rate = 1 - self.replication_rate
         self.mutation_rate = param_dict['MUTATION_RATE']
         self.learning_rate = param_dict['LEARNING_RATE']
@@ -65,10 +65,10 @@ class GeneticAlgorithm:
 
         # this makes sure the replication and crossover rates are even numbers,
         # preventing population size from changing
-        self.replication_size = (int(self.population_size * self.replication_rate) + 
+        self.replication_size = (int(self.population_size * self.replication_rate) +
                                 int(self.population_size * self.replication_rate) % 2)
         self.cross_size = self.population_size - self.replication_size
-    
+
     def run(self, executor):
         """run the genetic algorithm
 
@@ -80,7 +80,7 @@ class GeneticAlgorithm:
         """
         population = np.array([(0, NeuralNetwork(self.rng, self.sizes)) for i in range(self.population_size)],
                           dtype=[('score', float), ('net', NeuralNetwork)])
-        
+
         self. executor = executor
         for generation in range(self.max_generations):
             # print(f"Generation: {generation + 1}")
@@ -101,7 +101,7 @@ class GeneticAlgorithm:
             self.mutate(elite_population)
 
             population = np.concatenate((elite_population, crossover_population))
-            
+
 
         best_network = population[0]['net']
         return best_network
@@ -165,22 +165,22 @@ class GeneticAlgorithm:
             parent2 = self.rng.choice(tournament_winners)  # Extract the network object from the tuple
             child = NeuralNetwork(self.rng, self.sizes)
             random_assignments = self.rng.integers(0, 2, size=(len(self.sizes)-1))
-            
+
             for j in range(len(random_assignments)):
                 # add mutation to crossover product children here to increase code efficiency
                 if self.rng.random() < self.mutation_rate:
                     if random_assignments[j] == 0:
-                        child.weights[j] = (np.copy(parent1['net'].weights[j]) + 
+                        child.weights[j] = (np.copy(parent1['net'].weights[j]) +
                         (self.rng.standard_normal(size=parent1['net'].weights[j].shape) * self.learning_rate))
                     else:
-                        child.weights[j] = (np.copy(parent2['net'].weights[j]) + 
+                        child.weights[j] = (np.copy(parent2['net'].weights[j]) +
                         (self.rng.standard_normal(size=parent2['net'].weights[j].shape) * self.learning_rate))
                 else:
                     if random_assignments[j] == 0:
                         child.weights[j] = np.copy(parent1['net'].weights[j])
                     else:
                         child.weights[j] = np.copy(parent2['net'].weights[j])
-            
+
             offsprings[i]['score'] = 0
             offsprings[i]['net'] = child
 
@@ -197,4 +197,3 @@ class GeneticAlgorithm:
                     if self.rng.random() < self.mutation_rate:
                         networks[net_index]['net'].weights[i] += (self.rng.standard_normal(size=networks[net_index]['net'].weights[i].shape) *
                             self.learning_rate)
-            

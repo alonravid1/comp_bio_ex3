@@ -5,6 +5,7 @@ from GeneticAlgorithm import GeneticAlgorithm
 from copy import deepcopy
 import time
 
+
 def check_param(param_dict, executor):
     ga = GeneticAlgorithm(param_dict)
     best_network = ga.run(executor)
@@ -12,6 +13,7 @@ def check_param(param_dict, executor):
     count = sum(predictions[i] == int(param_dict['y_train'][i]) for i in range(len(predictions)))
     accuracy = count / len(predictions)
     return accuracy, best_network
+
 
 def get_data(rng):
     # Load the training data
@@ -48,6 +50,7 @@ def get_data(rng):
 
     return np.array(X_train, dtype=np.float64), np.array(y_train), np.array(X_test, dtype=np.float64), np.array(y_test)
 
+
 # def timed_run(param):
 #     # start = time.time()
 #     results = [fixed_check_param(param)]
@@ -64,34 +67,32 @@ if __name__ == "__main__":
     # load the training and test data
     X_train, y_train, X_test, y_test = get_data(rng)
 
-
     # default Genetic Algorithm parameters
-    NETWORK_STRUCTURE = [16, 32, 16, 1]
-    POPULATION_SIZE = 100
-    MAX_GENERATIONS = 50
-    MUTATION_RATE = 0.4
-    REPLICATION_RATE = 0.15
+    NETWORK_STRUCTURE = [16, 8, 4, 1]
+    POPULATION_SIZE = 150
+    MAX_GENERATIONS = 150
+    MUTATION_RATE = 0.2
+    REPLICATION_RATE = 0.20
     CROSSOVER_RATE = 1 - REPLICATION_RATE
     TOURNAMENT_SIZE = 75
     LEARNING_RATE = 0.08
 
-
     # write a dictionary of the above parameters
     # write a function that takes in a dictionary of parameters and runs the genetic algorithm
     param_dict = {
-                "X_train": X_train, "y_train": y_train, "rng": rng ,
-                "NETWORK_STRUCTURE": NETWORK_STRUCTURE, "POPULATION_SIZE": POPULATION_SIZE,
-                "MAX_GENERATIONS": MAX_GENERATIONS, "MUTATION_RATE": MUTATION_RATE,
-                "REPLICATION_RATE": REPLICATION_RATE,"TOURNAMENT_SIZE": TOURNAMENT_SIZE,
-                 "LEARNING_RATE": LEARNING_RATE
-                }
+        "X_train": X_train, "y_train": y_train, "rng": rng,
+        "NETWORK_STRUCTURE": NETWORK_STRUCTURE, "POPULATION_SIZE": POPULATION_SIZE,
+        "MAX_GENERATIONS": MAX_GENERATIONS, "MUTATION_RATE": MUTATION_RATE,
+        "REPLICATION_RATE": REPLICATION_RATE, "TOURNAMENT_SIZE": TOURNAMENT_SIZE,
+        "LEARNING_RATE": LEARNING_RATE
+    }
 
     # set the parameter to be tested, and which values to test it over
-    param_key1 = "NETWORK_STRUCTURE"
-    param_key2 = "MUTATION_RATE"
+    param_key1 = "MAX_GENERATIONS"
+    param_key2 = "REPLICATION_RATE"
     param_key3 = "REPLICATION_RATE"
-    params1 = [[16, 32, 16, 1]]
-    params2 = [0.5]
+    params1 = [350,250,200,150,100,50]
+    params2 = [0.15,0.4,0.3,0.2,0.1,0.05,0.01]
 
     start = time.time()
 
@@ -119,7 +120,7 @@ if __name__ == "__main__":
                        "MAX_GENERATIONS,REPLICATION_RATE," +
                        "MUTATION_RATE," +
                        "LEARNING_RATE,TOURNAMENT_SIZE,BEST_SCORE\n")
-        
+
         for accuracy, best_network, result_dict in results:
             arr_rep = str(result_dict['NETWORK_STRUCTURE']).split("[")[1].split("]")[0].split(",")
             res_file.write("".join(arr_rep) + "," +
@@ -130,7 +131,7 @@ if __name__ == "__main__":
                            f"{result_dict['LEARNING_RATE']}," +
                            f"{result_dict['TOURNAMENT_SIZE']}," +
                            f"{accuracy}\n")
-            
+
             if accuracy > best_accuracy:
                 best_accuracy = accuracy
                 best_network = best_network
@@ -142,12 +143,12 @@ if __name__ == "__main__":
         max_accuracy = df['BEST_SCORE'].idxmax()
         print(df.head())
         # print(df.iloc[max_accuracy])
-        
+
     # Save the best network weights to a file
     with open('wnet0.txt', 'w') as f:
         for weight in best_network.weights:
             for i in range(weight.shape[0]):
-                for j in range(weight.shape[1]-1):
+                for j in range(weight.shape[1] - 1):
                     f.write(f"{weight[i][j]},")
                 f.write(f"{weight[i][-1]}")
                 f.write("\n")
