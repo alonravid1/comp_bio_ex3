@@ -70,9 +70,9 @@ if __name__ == "__main__":
     POPULATION_SIZE = 100
     MAX_GENERATIONS = 50
     MUTATION_RATE = 0.4
-    REPLICATION_RATE = 0.1
+    REPLICATION_RATE = 0.15
     CROSSOVER_RATE = 1 - REPLICATION_RATE
-    TOURNAMENT_SIZE = 60
+    TOURNAMENT_SIZE = 75
     LEARNING_RATE = 0.08
 
 
@@ -90,9 +90,8 @@ if __name__ == "__main__":
     param_key1 = "NETWORK_STRUCTURE"
     param_key2 = "MUTATION_RATE"
     param_key3 = "REPLICATION_RATE"
-    params1 = [[16, 32, 16, 1],
-                [16, 64, 32, 1], [16, 64, 16, 1]]
-    params2 = [0.5, 0.6]
+    params1 = [[16, 32, 16, 1]]
+    params2 = [0.5]
 
     start = time.time()
 
@@ -103,10 +102,10 @@ if __name__ == "__main__":
             for param2 in params2:
                 param_dict[param_key2] = param2
                 avg_score = 0
-                for i in range(10):
-                    result = check_param(param_dict, executor=executor)
-                    avg_score += result[0]
-                avg_score /= 10
+                # for i in range(2):
+                result = check_param(param_dict, executor=executor)
+                avg_score += result[0]
+                # avg_score /= 2
                 results.append([avg_score, result[1], deepcopy(param_dict)])
 
     end = time.time()
