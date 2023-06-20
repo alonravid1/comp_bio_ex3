@@ -5,6 +5,15 @@ import multiprocessing as mp
 from functools import partial
 import time
 
+def plot_scores(scores):
+    import matplotlib.pyplot as plt
+    plt.plot(scores)
+    plt.xlabel("Generation")
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy Improvement Over Generations, NN1")
+    plt.legend(["Best Network", "Average Network"])
+    plt.show()
+
 @nb.jit(nopython=True, cache=True)
 def jit_forward(X_train, y_train, weights):
     """forward propogate the input through the networks,
@@ -82,6 +91,7 @@ class GeneticAlgorithm:
                           dtype=[('score', float), ('net', NeuralNetwork)])
 
         self. executor = executor
+        scores = []
         for generation in range(self.max_generations):
             # print(f"Generation: {generation + 1}")
 
@@ -92,7 +102,8 @@ class GeneticAlgorithm:
             # print the best network in the generation
             # print(f"Best network: {sorted_population_scores[0]['net']}")
             # print the best score in the generation
-            # print(f"Best score: {sorted_population_scores[0]['score']}")
+            avg_score = sorted_population_scores['score'].sum() / self.population_size
+            scores.append((sorted_population_scores[0]['score'], avg_score))
 
             elite_population = self.select(sorted_population_scores)
             crossover_population = self.crossover(sorted_population_scores)
@@ -104,6 +115,7 @@ class GeneticAlgorithm:
 
 
         best_network = population[0]['net']
+        # plot_scores(scores)
         return best_network
 
 
@@ -195,5 +207,5 @@ class GeneticAlgorithm:
         for net_index in range(1, networks.shape[0]):
             for i in range(len(networks[net_index]['net'].weights)):
                     if self.rng.random() < self.mutation_rate:
-                        networks[net_index]['net'].weights[i] += (self.rng.standard_normal(size=networks[net_index]['net'].weights[i].shape) *
+                        networks[net_index]['net'].weights[i] += (self.rng.normal(size=networks[net_index]['net'].weights[i].shape) *
                             self.learning_rate)

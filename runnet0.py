@@ -1,12 +1,7 @@
 import numpy as np
 from NeuralNetwork import NeuralNetwork
 
-rng = np.random.default_rng()
-validation_data = open("validation_set.txt", "r").readlines()
-
-# shuffle the data
-rng.shuffle(validation_data)
-
+validation_data = open("validation_set0.txt", "r").readlines()
 # and split it by "\t" the data is before the '\t' and the label is after the '\t'
 
 X_validation = []
@@ -31,6 +26,8 @@ for line in weights_raw:
         loaded_weights.append([])
     else:
         loaded_weights[-1].append([float(i) for i in line.split(',')])
+loaded_weights.pop()
+
 
 best_network.weights = loaded_weights
 
@@ -38,6 +35,7 @@ best_network.weights = loaded_weights
 predictions = best_network.forward(X_validation)
 
 # zip the X_test and the predictions together and write them to a file
-with open('predictions.txt', 'w') as f:
-    for i in range(len(predictions)):
-        f.write(f"prediction: {predictions[i]}\tsample: {X_validation[i]}\tlabel: {y_validation[i]}\n")
+with open('predictions0.txt', 'w') as f:
+    for i in range(len(predictions)-1):
+        f.write(str(predictions[i]) + "\n")
+    f.write(str(predictions[-1]))

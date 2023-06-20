@@ -10,12 +10,12 @@ def xavier_init(shape):
 
 # Define the neural network class
 class NeuralNetwork:
-    def __init__(self, rng, sizes):
+    def __init__(self, rng=None, sizes=None):
         self.weights = []
         self.rng = rng
         self.sizes = sizes
 
-        if self.weights == []:
+        if self.weights == [] and sizes is not None:
             for i in range(len(self.sizes) - 1):
                 weight_shape = (self.sizes[i], self.sizes[i + 1])
                 weight_init = xavier_init(weight_shape)
