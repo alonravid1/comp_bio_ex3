@@ -17,6 +17,6 @@ with open(f"test_set{file_num}.txt", "w") as test_file:
     for line in data[training_size:data_size]:
         test_file.write(line)
 
-with open(f"validation_set{file_num}.txt", "w") as validation_file:
+with open(f"testnet{file_num}.txt", "w") as validation_file:
     for line in data[data_size:]:
         validation_file.write(line)

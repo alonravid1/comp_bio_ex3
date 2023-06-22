@@ -106,14 +106,40 @@ def get_validation_data(rng):
     
     return np.array(X_validation, dtype=np.float64), np.array(y_validation)
 
+def get_input():
+    info = (
+    "This program will train a neural network which " + 
+    "is able to differentiate between the two " + 
+    "classes of the given data. It does so by running " + 
+    "a genetic algorithm which generates " + 
+    "a population of neural networks, and then evolves them over several generations, " +
+    "making random changes to their weights and crossing over network weights to produce " +
+    "new networks.\nThe networks are then tested on the test data, and the best network " +
+    """weights are saved as "wnet1.txt"."""
+    )
+    
+    # get training data path
+    get_info = input("See information about the program? (y/n): ")
+    if get_info == "y":
+        print(info)
+        
+    # get training data path
+    train_path = input("Enter the path to the training data: ")
+    # get test data path
+    test_path = input("Enter the path to the test data: ")
+    print("running...")
+
+    return train_path, test_path
+
 
 if __name__ == "__main__":
     
-    if len(sys.argv) == 3:
-        train_path = sys.argv[1]
-        test_path = sys.argv[2]
-    else:
+    train_path, test_path = get_input()
+    
+    if train_path == "":
         train_path = "training_set1.txt"
+    
+    if test_path == "":
         test_path = "test_set1.txt"
 
     # for multiprocessing
@@ -123,7 +149,6 @@ if __name__ == "__main__":
 
     # load the training and test data
     X_train, y_train, X_test, y_test = get_data(rng, train_path, test_path)
-    X_validation, y_validation = get_validation_data(rng)
 
     # default Genetic Algorithm parameters
     NETWORK_STRUCTURE = [16, 32, 16, 1]
@@ -197,3 +222,5 @@ if __name__ == "__main__":
                 f.write(f"{weight[i][-1]}")
                 f.write("\n")
             f.write("end of layer\n")
+            
+    input("Done!\nEnter to exit")
