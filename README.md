@@ -9,7 +9,11 @@ Buildnet0 program is designed to build a neural network for the first legality p
 
 To run buildnet0 program:
 1. Clone the repository: `git clone https://github.com/alonravid1/comp_bio_ex3.git`
-2. Place the training and test data files in the same folder as the buildnet0 program. Name the files `training_set0.txt` and `test_set0.txt`.
+2. Two options to set the data:
+   * run by defalut:
+     Place the training and test data files in the same folder as the buildnet0 program. Name the files `training_set0.txt` and `test_set0.txt`.
+     When the program asked the file paths press enter.
+    * run by giving the train and test data path files - the program will ask for path of each, write the path and press enter.
 3. Double-click on the `buildnet0.exe` file.
 4. When prompted, choose whether to see information about the program (y/n).
 5. Enter the path to the training data file or press Enter to use the default file name.
@@ -37,7 +41,11 @@ Buildnet1 program is similar to buildnet0 but for the second legality problem. I
 
 To run buildnet1 program:
 1. Clone the repository: `git clone https://github.com/alonravid1/comp_bio_ex3.git`
-2. Place the training and test data files in the same folder as the buildnet1 program. Name the files `training_set1.txt` and `test_set1.txt`.
+2. Two options to set the data:
+   * run by defalut:
+     Place the training and test data files in the same folder as the buildnet1 program. Name the files `training_set1.txt` and `test_set1.txt`.
+     When the program asked the file paths press enter.
+    * run by giving the train and test data path files - the program will ask for path of each, write the path and press enter.
 3. Double-click on the `buildnet1.exe` file.
 4. When prompted, choose whether to see information about the program (y/n).
 5. Enter the path to the training data file or press Enter to use the default file name.
