@@ -1,4 +1,4 @@
-# Neural Network with Genetic Algorithm
+# Ex3 - Neural Network with Genetic Algorithm
 This project implements a neural network with a genetic algorithm approach to learn patterns in binary strings. The goal is to build a network that can predict the legality of new binary strings based on the learned patterns. There are two separate problems addressed in this project, each requiring a different program.
 
 ## Programs
